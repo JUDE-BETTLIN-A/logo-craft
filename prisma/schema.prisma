@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  password      String?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  logos         Logo[]
+  favorites     Favorite[]
+  downloads     Download[]
+}
+
+model Logo {
+  id              String   @id @default(cuid())
+  name            String
+  businessName    String
+  tagline         String?
+  industry        String
+  style           String
+  colors          String   // JSON array stored as string
+  fontFamily      String
+  iconName        String
+  layout          String
+  backgroundColor String
+  textColor       String
+  iconColor       String
+  fontSize        Int      @default(24)
+  iconSize        Int      @default(40)
+  spacing         Int      @default(16)
+  borderRadius    Int      @default(0)
+  shadow          Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  favorites       Favorite[]
+  downloads       Download[]
+
+  @@index([userId])
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  logoId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  logo      Logo     @relation(fields: [logoId], references: [id])
+
+  @@unique([userId, logoId])
+  @@index([userId])
+}
+
+model Download {
+  id        String   @id @default(cuid())
+  userId    String
+  logoId    String
+  format    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  logo      Logo     @relation(fields: [logoId], references: [id])
+
+  @@index([userId])
+}

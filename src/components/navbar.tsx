@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Sparkles,
   Menu,
@@ -10,20 +12,47 @@ import {
   User,
   LogOut,
   LayoutDashboard,
+  Bot,
+  Shield,
+  Crown,
 } from "lucide-react";
 
+interface UserData {
+  id: string;
+  name: string | null;
+  email: string;
+  image?: string | null;
+  isAdmin?: boolean;
+}
+
 export default function Navbar() {
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [user, setUser] = useState<UserData | null>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
-
-  const isLoggedIn = false;
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 8);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Load user from cookie on mount
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data.user);
+        }
+      } catch {
+        // Not logged in
+      }
+    };
+    loadUser();
   }, []);
 
   useEffect(() => {
@@ -35,6 +64,15 @@ export default function Navbar() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    setUser(null);
+    setUserMenuOpen(false);
+    router.push("/");
+  };
+
+  const isLoggedIn = !!user;
 
   return (
     <nav
@@ -58,20 +96,37 @@ export default function Navbar() {
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-1">
-            {[
-              { href: "/generate", label: "Logo Maker" },
-              { href: "/sell", label: "Sell Logos" },
-              { href: "/pricing", label: "Pricing" },
-              { href: "/dashboard", label: "My Logos" },
-            ].map((link) => (
+            <Link
+              href="/generate"
+              className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Logo Maker
+            </Link>
+            
+            {/* AI Sales Bot - Admin Only */}
+            {user?.isAdmin && (
               <Link
-                key={link.href}
-                href={link.href}
-                className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-50 transition-colors"
+                href="/sell"
+                className="px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors flex items-center gap-1.5"
               >
-                {link.label}
+                <Bot className="w-3.5 h-3.5" />
+                AI Sales Bot
+                <Badge className="bg-indigo-600 text-white text-[10px] px-1 py-0">Admin</Badge>
               </Link>
-            ))}
+            )}
+            
+            <Link
+              href="/pricing"
+              className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Pricing
+            </Link>
+            <Link
+              href="/dashboard"
+              className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              My Logos
+            </Link>
           </div>
 
           {/* Right side */}
@@ -80,14 +135,36 @@ export default function Navbar() {
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-gray-100 transition-colors"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors border border-gray-200"
                 >
-                  <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
-                    <User className="w-4 h-4 text-indigo-600" />
+                  <div className="w-7 h-7 bg-indigo-100 rounded-full flex items-center justify-center">
+                    <User className="w-3.5 h-3.5 text-indigo-600" />
+                  </div>
+                  <div className="text-left hidden lg:block">
+                    <p className="text-xs font-medium text-gray-700">{user?.name || "User"}</p>
+                    {user?.isAdmin && (
+                      <p className="text-[10px] text-indigo-600 flex items-center gap-0.5">
+                        <Crown className="w-2.5 h-2.5" />
+                        Admin
+                      </p>
+                    )}
                   </div>
                 </button>
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg shadow-gray-200/60 border border-gray-100 py-1.5 animate-fade-in">
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg shadow-gray-200/60 border border-gray-100 py-1.5 animate-fade-in">
+                    {/* User info */}
+                    <div className="px-4 py-2.5 border-b border-gray-100 mb-1">
+                      <p className="text-sm font-medium text-gray-900">{user?.name || "User"}</p>
+                      <p className="text-xs text-gray-500">{user?.email}</p>
+                      {user?.isAdmin && (
+                        <Badge className="mt-1.5 bg-indigo-600 text-white text-[10px] px-1.5 py-0">
+                          <Shield className="w-2.5 h-2.5 inline mr-1" />
+                          Admin Access
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    {/* Menu items */}
                     <Link
                       href="/dashboard"
                       className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
@@ -96,8 +173,23 @@ export default function Navbar() {
                       <LayoutDashboard className="w-4 h-4 text-gray-400" />
                       Dashboard
                     </Link>
-                    <button className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 w-full transition-colors">
-                      <LogOut className="w-4 h-4 text-gray-400" />
+                    
+                    {user?.isAdmin && (
+                      <Link
+                        href="/sell"
+                        className="flex items-center gap-2.5 px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50 transition-colors"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        <Bot className="w-4 h-4" />
+                        AI Sales Bot
+                      </Link>
+                    )}
+                    
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center gap-2.5 px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full transition-colors"
+                    >
+                      <LogOut className="w-4 h-4 text-red-400" />
                       Sign Out
                     </button>
                   </div>
@@ -133,28 +225,69 @@ export default function Navbar() {
         }`}
       >
         <div className="border-t border-gray-100 bg-white px-6 py-4 space-y-1">
-          {[
-            { href: "/generate", label: "Logo Maker" },
-            { href: "/sell", label: "Sell Logos" },
-            { href: "/pricing", label: "Pricing" },
-            { href: "/dashboard", label: "My Logos" },
-          ].map((link) => (
+          <Link
+            href="/generate"
+            className="block px-3 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+            onClick={() => setMobileOpen(false)}
+          >
+            Logo Maker
+          </Link>
+          
+          {/* AI Sales Bot - Admin Only (Mobile) */}
+          {user?.isAdmin && (
             <Link
-              key={link.href}
-              href={link.href}
-              className="block px-3 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+              href="/sell"
+              className="block px-3 py-2.5 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors flex items-center gap-2"
               onClick={() => setMobileOpen(false)}
             >
-              {link.label}
+              <Bot className="w-4 h-4" />
+              AI Sales Bot
+              <Badge className="bg-indigo-600 text-white text-[10px] px-1.5 py-0">Admin</Badge>
             </Link>
-          ))}
+          )}
+          
+          <Link
+            href="/pricing"
+            className="block px-3 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+            onClick={() => setMobileOpen(false)}
+          >
+            Pricing
+          </Link>
+          <Link
+            href="/dashboard"
+            className="block px-3 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+            onClick={() => setMobileOpen(false)}
+          >
+            My Logos
+          </Link>
+          
+          {isLoggedIn && user?.isAdmin && (
+            <div className="pt-3 mt-3 border-t border-gray-100">
+              <Badge className="bg-indigo-600 text-white text-[10px] px-2 py-1">
+                <Shield className="w-2.5 h-2.5 inline mr-1" />
+                Admin Access
+              </Badge>
+            </div>
+          )}
+          
           <div className="pt-3 border-t border-gray-100 flex gap-2">
-            <Link href="/auth/signin" className="flex-1">
-              <Button variant="outline" size="sm" className="w-full">Sign In</Button>
-            </Link>
-            <Link href="/auth/signup" className="flex-1">
-              <Button variant="gradient" size="sm" className="w-full">Get Started</Button>
-            </Link>
+            {isLoggedIn ? (
+              <>
+                <Link href="/dashboard" className="flex-1">
+                  <Button variant="outline" size="sm" className="w-full">Dashboard</Button>
+                </Link>
+                <Button variant="ghost" size="sm" onClick={handleLogout} className="flex-1">Sign Out</Button>
+              </>
+            ) : (
+              <>
+                <Link href="/auth/signin" className="flex-1">
+                  <Button variant="outline" size="sm" className="w-full">Sign In</Button>
+                </Link>
+                <Link href="/auth/signup" className="flex-1">
+                  <Button variant="gradient" size="sm" className="w-full">Get Started</Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>

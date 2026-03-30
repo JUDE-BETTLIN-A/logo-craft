@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import AISalesChat from "@/components/ai-sales-chat";
+import TelegramSalesBot from "@/components/telegram-sales-bot";
 import {
   Bot,
   CheckCircle2,
@@ -99,12 +100,12 @@ interface BotInfo {
   webhook?: { url: string; pending_update_count: number };
 }
 
-type Tab = "pipeline" | "keywords" | "chat" | "setup";
+type Tab = "pipeline" | "keywords" | "chat" | "setup" | "ai-sales";
 
 /* ─── Sell Dashboard ─── */
 export default function SellPage() {
   /* ── State ── */
-  const [tab, setTab] = useState<Tab>("keywords");
+  const [tab, setTab] = useState<Tab>("ai-sales");
   const [botToken, setBotToken] = useState("");
   const [webhookUrl, setWebhookUrl] = useState("");
   const [botInfo, setBotInfo] = useState<BotInfo | null>(null);
@@ -346,7 +347,8 @@ export default function SellPage() {
           <div className="flex gap-0.5 overflow-x-auto scrollbar-none py-3">
             {(
               [
-                { id: "keywords" as Tab, label: "Keywords & Targeting", icon: Hash },
+                { id: "ai-sales" as Tab, label: "AI Sales Bot", icon: Bot },
+                { id: "keywords" as Tab, label: "Keywords", icon: Hash },
                 { id: "pipeline" as Tab, label: "Sales Pipeline", icon: TrendingUp },
                 { id: "chat" as Tab, label: "AI Assistant", icon: Bot },
                 { id: "setup" as Tab, label: "Bot Setup", icon: Settings },
@@ -371,6 +373,9 @@ export default function SellPage() {
 
       {/* ── Content ── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+
+        {/* ─────── AI SALES BOT TAB ─────── */}
+        {tab === "ai-sales" && <TelegramSalesBot />}
 
         {/* ─────── KEYWORDS TAB ─────── */}
         {tab === "keywords" && (

@@ -33,9 +33,12 @@ export default function SignInPage() {
         return;
       }
 
-      // Store user in localStorage for demo
-      localStorage.setItem("user", JSON.stringify(data.user));
-      router.push("/dashboard");
+      // Redirect admin users to AI Sales Bot, others to dashboard
+      if (data.isAdmin) {
+        router.push("/sell");
+      } else {
+        router.push("/dashboard");
+      }
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {

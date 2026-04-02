@@ -7,10 +7,10 @@ interface LogoGridProps {
   logos: LogoConcept[];
   onFavorite?: (id: string) => void;
   favorites?: Set<string>;
-  columns?: 3 | 4;
+  columns?: 3 | 4 | 5;
 }
 
-export default function LogoGrid({ logos, onFavorite, favorites = new Set(), columns = 4 }: LogoGridProps) {
+export default function LogoGrid({ logos, onFavorite, favorites = new Set(), columns = 5 }: LogoGridProps) {
   if (logos.length === 0) {
     return (
       <div className="text-center py-16">
@@ -27,7 +27,9 @@ export default function LogoGrid({ logos, onFavorite, favorites = new Set(), col
 
   const gridClass = columns === 3
     ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-    : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6";
+    : columns === 4
+    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+    : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6";
 
   return (
     <div className={gridClass}>

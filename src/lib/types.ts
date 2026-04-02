@@ -56,8 +56,15 @@ export interface GenerateLogoRequest {
   businessName: string;
   industry: string;
   keywords?: string;
-  style?: LogoStyle;
+  style?: LogoStyle | string;
   colorPreference?: string;
+  tagline?: string;
+  targetAudience?: string;
+  personality?: string;
+  colors?: string;
+  iconPreference?: string;
+  backgroundType?: string;
+  additionalNotes?: string;
 }
 
 export interface EditorState {

@@ -1,31 +1,142 @@
 import { LogoConcept, LogoStyle, LogoLayout, GenerateLogoRequest } from "./types";
 import { generateId } from "./utils";
 
-// ── Icon mapping by industry ──
-const INDUSTRY_ICONS: Record<string, string[]> = {
-  Technology: ["Monitor", "Cpu", "Code", "Wifi", "Zap", "Globe", "Layers", "Terminal"],
-  Healthcare: ["Heart", "Activity", "Stethoscope", "Shield", "Cross", "Pill"],
-  Education: ["BookOpen", "GraduationCap", "Lightbulb", "PenTool", "Award"],
-  Finance: ["DollarSign", "TrendingUp", "BarChart", "PieChart", "Wallet", "Landmark"],
-  "Food & Beverage": ["Coffee", "UtensilsCrossed", "Cherry", "Soup", "Wine"],
-  Fashion: ["Shirt", "Scissors", "Gem", "Crown", "Sparkles"],
-  "Real Estate": ["Home", "Building", "MapPin", "Key", "Landmark"],
-  "Sports & Fitness": ["Dumbbell", "Trophy", "Target", "Flame", "Timer"],
-  Travel: ["Plane", "Map", "Compass", "Globe", "Anchor", "Mountain"],
-  Entertainment: ["Music", "Film", "Camera", "Gamepad", "Star", "Tv"],
-  Consulting: ["Briefcase", "Users", "Target", "TrendingUp", "Lightbulb"],
-  Construction: ["Hammer", "HardHat", "Wrench", "Building", "Ruler"],
-  Automotive: ["Car", "Gauge", "Wrench", "Fuel", "Settings"],
-  "Beauty & Spa": ["Flower", "Sparkles", "Heart", "Droplet", "Sun"],
-  Photography: ["Camera", "Aperture", "Image", "Focus", "Eye"],
-  Music: ["Music", "Headphones", "Radio", "Mic", "Volume2"],
-  Legal: ["Scale", "Shield", "BookOpen", "Gavel", "FileText"],
-  Agriculture: ["Leaf", "Sprout", "Sun", "Cloud", "TreeDeciduous"],
-  "Non-Profit": ["Heart", "HandHelping", "Globe", "Users", "Ribbon"],
-  "E-Commerce": ["ShoppingCart", "Package", "CreditCard", "Store", "Tag"],
+// ── Keyword-to-icon mapping for relatability ──
+// When a user types keywords, we match them to the most relevant icons
+const KEYWORD_ICON_MAP: Record<string, string[]> = {
+  // Tech keywords
+  tech: ["Cpu", "Monitor", "Code", "Terminal", "Wifi", "Globe", "Layers", "Zap"],
+  technology: ["Cpu", "Monitor", "Code", "Terminal", "Wifi", "Globe", "Layers", "Zap"],
+  software: ["Code", "Terminal", "Layers", "Monitor", "Cpu", "Globe"],
+  ai: ["Cpu", "Zap", "Sparkles", "Globe", "Layers"],
+  digital: ["Monitor", "Globe", "Wifi", "Layers", "Code"],
+  cloud: ["Globe", "Layers", "Wifi", "Shield"],
+  cyber: ["Shield", "Code", "Terminal", "Cpu"],
+  data: ["BarChart", "TrendingUp", "Layers", "Cpu"],
+  code: ["Code", "Terminal", "Cpu", "Layers"],
+  web: ["Globe", "Code", "Monitor", "Layers"],
+  app: ["Monitor", "Layers", "Zap", "Sparkles"],
+  startup: ["Zap", "TrendingUp", "Sparkles", "Target"],
+  innovation: ["Lightbulb", "Zap", "Sparkles", "Star"],
+  solutions: ["Shield", "Target", "Zap", "Layers"],
+  
+  // Business keywords
+  consulting: ["Briefcase", "Users", "Target", "TrendingUp"],
+  finance: ["DollarSign", "TrendingUp", "BarChart", "Shield"],
+  business: ["Briefcase", "TrendingUp", "Target", "Users"],
+  corporate: ["Building", "Briefcase", "Users", "Shield"],
+  
+  // Creative keywords
+  design: ["PenTool", "Sparkles", "Crown", "Star"],
+  creative: ["Sparkles", "Star", "PenTool", "Camera"],
+  art: ["PenTool", "Camera", "Sparkles", "Star"],
+  media: ["Film", "Camera", "Music", "Star"],
+  photo: ["Camera", "Film", "Star", "Sparkles"],
+  
+  // Nature keywords
+  eco: ["Leaf", "Globe", "Flower", "Sparkles"],
+  green: ["Leaf", "Globe", "Flower", "Sparkles"],
+  organic: ["Leaf", "Flower", "Globe", "Sparkles"],
+  nature: ["Leaf", "Flower", "Mountain", "Globe"],
+  
+  // Power/energy keywords
+  power: ["Zap", "Shield", "Star", "Flame"],
+  energy: ["Zap", "Flame", "Star", "Sparkles"],
+  fast: ["Zap", "Plane", "Target", "TrendingUp"],
+  speed: ["Zap", "Plane", "Target", "TrendingUp"],
+  
+  // Security/trust keywords
+  secure: ["Shield", "Key", "Code", "Globe"],
+  security: ["Shield", "Key", "Code", "Globe"],
+  trust: ["Shield", "Heart", "Star", "Award"],
+  protect: ["Shield", "Key", "Star", "Globe"],
+  
+  // Premium keywords
+  luxury: ["Crown", "Gem", "Star", "Sparkles"],
+  premium: ["Crown", "Gem", "Star", "Award"],
+  elite: ["Crown", "Star", "Award", "Trophy"],
+  
+  // Health keywords
+  health: ["Heart", "Shield", "Star", "Sparkles"],
+  medical: ["Heart", "Shield", "Star", "Sparkles"],
+  wellness: ["Heart", "Flower", "Star", "Sparkles"],
+  
+  // Education keywords
+  education: ["BookOpen", "Award", "Lightbulb", "Star"],
+  learning: ["BookOpen", "Lightbulb", "Star", "Award"],
+  school: ["BookOpen", "Award", "Star", "PenTool"],
+  
+  // Food keywords
+  food: ["Coffee", "Star", "Heart", "Sparkles"],
+  restaurant: ["Coffee", "Star", "Heart", "Sparkles"],
+  
+  // Default fallbacks for common words
+  modern: ["Layers", "Zap", "Star", "Sparkles"],
+  professional: ["Briefcase", "Shield", "Star", "Award"],
+  global: ["Globe", "Map", "Compass", "Star"],
 };
 
+// ── Icon mapping by industry (enriched with more relatable icons) ──
+const INDUSTRY_ICONS: Record<string, string[]> = {
+  Technology: ["Cpu", "Code", "Terminal", "Globe", "Layers", "Zap", "Shield", "Monitor", "Wifi"],
+  Healthcare: ["Heart", "Shield", "Star", "Sparkles", "Award"],
+  Education: ["BookOpen", "Lightbulb", "PenTool", "Award", "Star"],
+  Finance: ["DollarSign", "TrendingUp", "BarChart", "Shield", "Star"],
+  "Food & Beverage": ["Coffee", "Star", "Heart", "Sparkles", "Crown"],
+  Fashion: ["Gem", "Crown", "Sparkles", "Star", "PenTool"],
+  "Real Estate": ["Home", "Building", "Key", "MapPin", "Star"],
+  "Sports & Fitness": ["Dumbbell", "Trophy", "Target", "Star", "Zap"],
+  Travel: ["Plane", "Globe", "Compass", "Map", "Star"],
+  Entertainment: ["Music", "Film", "Camera", "Gamepad", "Star"],
+  Consulting: ["Briefcase", "Users", "Target", "TrendingUp", "Lightbulb"],
+  Construction: ["Hammer", "Building", "Wrench", "Star", "Shield"],
+  Automotive: ["Zap", "Shield", "Star", "Wrench", "Target"],
+  "Beauty & Spa": ["Flower", "Sparkles", "Heart", "Star", "Crown"],
+  Photography: ["Camera", "Star", "Sparkles", "PenTool", "Film"],
+  Music: ["Music", "Star", "Sparkles", "Heart", "Zap"],
+  Legal: ["Shield", "Star", "BookOpen", "Award", "Scale"],
+  Agriculture: ["Leaf", "Globe", "Star", "Sparkles", "Flower"],
+  "Non-Profit": ["Heart", "Globe", "Users", "Star", "Award"],
+  "E-Commerce": ["ShoppingCart", "Package", "Tag", "Star", "Zap"],
+};
+
+// ── Resolve icons from keywords + industry ──
+function resolveIcons(industry: string, keywords?: string): string[] {
+  const baseIcons = INDUSTRY_ICONS[industry] || INDUSTRY_ICONS["Technology"];
+  
+  if (!keywords) return baseIcons;
+  
+  const kws = keywords.toLowerCase().split(/[,\s]+/).filter(Boolean);
+  const keywordIcons: string[] = [];
+  
+  for (const kw of kws) {
+    const mapped = KEYWORD_ICON_MAP[kw];
+    if (mapped) {
+      keywordIcons.push(...mapped);
+    }
+  }
+  
+  if (keywordIcons.length === 0) return baseIcons;
+  
+  // Merge: keyword icons first (most relevant), then industry icons
+  const merged = [...new Set([...keywordIcons, ...baseIcons])];
+  return merged;
+}
+
 // ── Color palettes — each is [primary, secondary, bg] ──
+// Industry-aware palettes for more relatable colors
+const INDUSTRY_COLOR_OVERRIDES: Record<string, string[][]> = {
+  Technology: [
+    ["#3B82F6", "#8B5CF6", "#0F172A"],  // Blue-purple gradient on dark
+    ["#06B6D4", "#3B82F6", "#0D1117"],  // Cyan-blue on dark
+    ["#8B5CF6", "#EC4899", "#1A1A2E"],  // Purple-pink on dark
+    ["#10B981", "#3B82F6", "#0F172A"],  // Green-blue on dark
+    ["#6366F1", "#06B6D4", "#FFFFFF"],  // Indigo-cyan on white
+    ["#7C3AED", "#2563EB", "#F5F3FF"],  // Violet-blue on light
+    ["#0EA5E9", "#8B5CF6", "#020617"],  // Sky-purple on dark
+  ],
+};
+
 const STYLE_COLORS: Record<LogoStyle, string[][]> = {
   modern: [
     ["#2563EB", "#3B82F6", "#FFFFFF"],
@@ -86,11 +197,13 @@ const STYLE_COLORS: Record<LogoStyle, string[][]> = {
     ["#2F4F4F", "#BC8F8F", "#FFF0F5"],
   ],
   tech: [
-    ["#00FF87", "#0A0F1C", "#F0FDF4"],
-    ["#7B61FF", "#1A1A2E", "#F5F3FF"],
-    ["#00F5FF", "#0D1117", "#ECFEFF"],
-    ["#8B5CF6", "#06B6D4", "#FFFFFF"],
-    ["#10B981", "#1E293B", "#F0FDF4"],
+    ["#3B82F6", "#8B5CF6", "#0F172A"],
+    ["#06B6D4", "#3B82F6", "#0D1117"],
+    ["#8B5CF6", "#EC4899", "#1A1A2E"],
+    ["#10B981", "#06B6D4", "#020617"],
+    ["#6366F1", "#0EA5E9", "#FFFFFF"],
+    ["#00F5FF", "#7B61FF", "#0A0F1C"],
+    ["#00FF87", "#0EA5E9", "#0F172A"],
   ],
   organic: [
     ["#2D6A4F", "#52B788", "#F0FDF4"],
@@ -111,7 +224,7 @@ const STYLE_FONTS: Record<LogoStyle, string[]> = {
   playful: ["Pacifico", "Quicksand", "Nunito", "Fredoka", "Baloo 2"],
   geometric: ["Montserrat", "Raleway", "Ubuntu", "Rubik", "Outfit"],
   vintage: ["Playfair Display", "Merriweather", "Lora", "Old Standard TT", "Libre Baskerville"],
-  tech: ["Ubuntu", "Roboto Mono", "Inter", "JetBrains Mono", "Space Grotesk"],
+  tech: ["Space Grotesk", "JetBrains Mono", "Inter", "Outfit", "Ubuntu"],
   organic: ["Quicksand", "Nunito", "Lato", "Comfortaa", "Varela Round"],
 };
 
@@ -122,33 +235,33 @@ const ALL_LAYOUTS: LogoLayout[] = [
   "wordmark", "monogram", "emblem", "badge", "minimal", "split",
 ];
 
-// ── Per-style layout pools (letter-based layouts heavily weighted) ──
+// ── Per-style layout pools — more icon-heavy layouts for better relatability ──
 const STYLE_LAYOUTS: Record<LogoStyle, LogoLayout[]> = {
-  modern:     ["lettermark", "initial-top", "initial-left", "icon-left", "minimal", "wordmark"],
-  classic:    ["lettermark", "initial-top", "emblem", "badge", "stacked", "icon-top"],
-  minimalist: ["lettermark", "initial-left", "wordmark", "minimal", "monogram", "icon-left"],
-  bold:       ["lettermark", "initial-top", "icon-left", "badge", "split", "wordmark"],
-  elegant:    ["lettermark", "initial-top", "initial-left", "emblem", "wordmark", "monogram"],
-  playful:    ["lettermark", "initial-top", "icon-left", "stacked", "split", "badge"],
-  geometric:  ["lettermark", "initial-left", "badge", "emblem", "icon-top", "minimal"],
-  vintage:    ["lettermark", "initial-top", "emblem", "badge", "stacked", "icon-top"],
-  tech:       ["lettermark", "initial-left", "minimal", "monogram", "split", "wordmark"],
-  organic:    ["lettermark", "initial-top", "icon-top", "stacked", "emblem", "wordmark"],
+  modern:     ["icon-top", "icon-left", "initial-top", "stacked", "badge", "minimal", "split"],
+  classic:    ["emblem", "badge", "icon-top", "stacked", "initial-top", "lettermark"],
+  minimalist: ["icon-left", "minimal", "wordmark", "icon-top", "lettermark", "initial-left"],
+  bold:       ["icon-top", "badge", "split", "icon-left", "initial-top", "stacked"],
+  elegant:    ["emblem", "icon-top", "initial-top", "stacked", "lettermark", "monogram"],
+  playful:    ["icon-top", "stacked", "icon-left", "badge", "split", "initial-top"],
+  geometric:  ["icon-top", "badge", "emblem", "icon-left", "stacked", "initial-left"],
+  vintage:    ["emblem", "badge", "icon-top", "stacked", "initial-top", "lettermark"],
+  tech:       ["icon-top", "icon-left", "stacked", "badge", "split", "initial-top", "minimal"],
+  organic:    ["icon-top", "stacked", "emblem", "icon-left", "initial-top", "wordmark"],
 };
 
-// ── Icon shapes per style ──
+// ── Icon shapes per style — more variety, tech gets shields ──
 type IconShape = "none" | "circle" | "rounded-square" | "hexagon" | "shield" | "diamond";
 const STYLE_ICON_SHAPES: Record<LogoStyle, IconShape[]> = {
-  modern:     ["none", "rounded-square", "circle"],
+  modern:     ["rounded-square", "circle", "none"],
   classic:    ["circle", "shield", "none"],
-  minimalist: ["none", "none", "circle"],
-  bold:       ["none", "rounded-square", "diamond"],
-  elegant:    ["circle", "none", "diamond"],
+  minimalist: ["none", "circle", "rounded-square"],
+  bold:       ["rounded-square", "diamond", "shield"],
+  elegant:    ["circle", "diamond", "none"],
   playful:    ["circle", "rounded-square", "none"],
   geometric:  ["hexagon", "diamond", "rounded-square"],
   vintage:    ["circle", "shield", "none"],
-  tech:       ["hexagon", "rounded-square", "none"],
-  organic:    ["circle", "none", "rounded-square"],
+  tech:       ["shield", "hexagon", "rounded-square", "circle"],
+  organic:    ["circle", "rounded-square", "none"],
 };
 
 // ── Dividers ──
@@ -168,16 +281,35 @@ const STYLE_WEIGHTS: Record<LogoStyle, number[]> = {
   playful:    [600, 700, 800],
   geometric:  [500, 600, 700],
   vintage:    [400, 600, 700],
-  tech:       [400, 500, 600],
+  tech:       [500, 600, 700],
   organic:    [400, 500, 600],
 };
 
-// ── Dark background colors ──
+// ── Dark background colors — richer, more premium ──
 const DARK_BACKGROUNDS = [
-  "#1C1C26", "#2D2D3A", "#1A1A2E", "#0F172A", "#1E293B",
-  "#18181B", "#27272A", "#292524", "#1C1917", "#0C0A09",
-  "#3B0764", "#4A0E4E", "#1E3A5F", "#2F4F4F", "#3D0C02",
+  "#0F172A", "#0D1117", "#020617", "#1A1A2E", "#0C0A09",
+  "#111827", "#18181B", "#1E1B4B", "#172554", "#1C1917",
+  "#1E293B", "#27272A", "#292524", "#3B0764", "#4A0E4E",
 ];
+
+// ── Gradient definitions for premium look ──
+interface GradientDef {
+  type: "linear" | "radial";
+  angle?: number;
+  colors: string[];
+}
+
+// Generate industry-appropriate gradients
+function getIndustryGradient(industry: string, primary: string, secondary: string): GradientDef | null {
+  const shouldUseGradient = Math.random() < 0.35; // 35% chance of gradient
+  if (!shouldUseGradient) return null;
+  
+  return {
+    type: "linear",
+    angle: pickRandom([135, 45, 90, 180]),
+    colors: [primary, secondary],
+  };
+}
 
 // ── Helpers ──
 function pickRandom<T>(arr: T[]): T {
@@ -202,23 +334,61 @@ function adjustColor(hex: string, amount: number): string {
   return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
 }
 
+/** Detect if a keyword or industry implies a specific style priority */
+function inferBestStyles(industry: string, keywords?: string): LogoStyle[] {
+  const kws = (keywords || "").toLowerCase();
+  const ind = industry.toLowerCase();
+  
+  // If keywords or industry strongly imply tech, bias toward tech style
+  if (ind.includes("tech") || kws.includes("tech") || kws.includes("software") || kws.includes("ai") || kws.includes("digital") || kws.includes("cyber") || kws.includes("code")) {
+    return shuffleArray(["tech", "modern", "geometric", "bold", "minimalist", "tech", "modern"] as LogoStyle[]);
+  }
+  if (ind.includes("health") || kws.includes("health") || kws.includes("medical")) {
+    return shuffleArray(["modern", "minimalist", "elegant", "organic", "classic"] as LogoStyle[]);
+  }
+  if (ind.includes("food") || kws.includes("food") || kws.includes("restaurant")) {
+    return shuffleArray(["playful", "vintage", "bold", "organic", "modern"] as LogoStyle[]);
+  }
+  if (ind.includes("fashion") || kws.includes("luxury") || kws.includes("premium")) {
+    return shuffleArray(["elegant", "minimalist", "classic", "modern", "bold"] as LogoStyle[]);
+  }
+  if (ind.includes("finance") || kws.includes("finance") || kws.includes("corporate")) {
+    return shuffleArray(["modern", "classic", "minimalist", "elegant", "bold"] as LogoStyle[]);
+  }
+  
+  // Fallback: all styles mixed
+  return shuffleArray(["modern", "classic", "minimalist", "bold", "elegant", "playful", "geometric", "vintage", "tech", "organic"] as LogoStyle[]);
+}
+
 // ── Main generator ──
 export function generateLogoConcepts(request: GenerateLogoRequest, count: number = 20): LogoConcept[] {
   const { businessName, industry, style, keywords } = request;
-  const styles: LogoStyle[] = style
-    ? [style]
-    : shuffleArray(["modern", "classic", "minimalist", "bold", "elegant", "playful", "geometric", "vintage", "tech", "organic"] as LogoStyle[]);
+  const parsedStyles = typeof style === "string" 
+    ? style.split(",").map(s => s.trim().toLowerCase() as LogoStyle).filter(s => Object.keys(STYLE_COLORS).includes(s))
+    : [];
 
-  const icons = INDUSTRY_ICONS[industry] || INDUSTRY_ICONS["Technology"];
+  // Use inferred styles based on industry + keywords for better relevance
+  const styles: LogoStyle[] = parsedStyles.length > 0
+    ? parsedStyles
+    : inferBestStyles(industry, keywords);
+
+  // Resolve icons from both industry AND keywords for better relatability
+  const icons = resolveIcons(industry, keywords);
   const logos: LogoConcept[] = [];
   const usedLayouts = new Set<string>();
+  const usedIcons = new Set<string>();
 
-  // Generate a tagline from keywords (like BrandCrowd's "SLOGAN HERE")
-  const tagline = keywords || "SLOGAN HERE";
+  // Use keywords as tagline only if they look like a tagline, otherwise generate a relevant one
+  const tagline = keywords || "";
 
   for (let i = 0; i < count; i++) {
     const currentStyle = styles[i % styles.length];
-    const colorOptions = STYLE_COLORS[currentStyle];
+    
+    // Try industry-specific color overrides first for more relatable colors
+    const industryColors = INDUSTRY_COLOR_OVERRIDES[industry];
+    const colorOptions = (industryColors && Math.random() < 0.6) 
+      ? industryColors 
+      : STYLE_COLORS[currentStyle];
     const colorSet = pickRandom(colorOptions);
     const layoutOptions = STYLE_LAYOUTS[currentStyle];
 
@@ -238,18 +408,31 @@ export function generateLogoConcepts(request: GenerateLogoRequest, count: number
     const divider = ["wordmark", "monogram", "lettermark", "initial-top", "initial-left"].includes(layout) ? "none" : pickRandom(DIVIDERS);
     const accentColor = adjustColor(colorSet[0], 40);
 
-    // BrandCrowd-style: varied backgrounds — 40% dark, 30% white, 30% colored
+    // Pick icon with diversity — avoid repeating the same icon
+    let selectedIcon: string;
+    const unseenIcons = icons.filter(ic => !usedIcons.has(ic));
+    if (unseenIcons.length > 0) {
+      selectedIcon = unseenIcons[Math.floor(Math.random() * Math.min(3, unseenIcons.length))]; // pick from top 3 unseen
+    } else {
+      usedIcons.clear();
+      selectedIcon = pickRandom(icons);
+    }
+    usedIcons.add(selectedIcon);
+
+    // Background selection — for tech, bias toward dark backgrounds
     let bgColor: string;
     let textClr: string;
     let iconClr: string;
 
     const bgRand = Math.random();
-    if (bgRand < 0.4) {
-      // Dark background
+    const darkBias = (industry === "Technology" || currentStyle === "tech") ? 0.55 : 0.4;
+    
+    if (bgRand < darkBias) {
+      // Dark background — premium look
       bgColor = pickRandom(DARK_BACKGROUNDS);
       textClr = "#FFFFFF";
       iconClr = colorSet[0];
-    } else if (bgRand < 0.7) {
+    } else if (bgRand < darkBias + 0.25) {
       // Clean white
       bgColor = "#FFFFFF";
       textClr = colorSet[0];
@@ -261,6 +444,9 @@ export function generateLogoConcepts(request: GenerateLogoRequest, count: number
       iconClr = colorSet[1] || colorSet[0];
     }
 
+    // Generate gradient for icon (premium feature)
+    const gradient = getIndustryGradient(industry, colorSet[0], colorSet[1]);
+
     logos.push({
       id: generateId(),
       name: `${businessName} Logo ${i + 1}`,
@@ -270,7 +456,7 @@ export function generateLogoConcepts(request: GenerateLogoRequest, count: number
       style: currentStyle,
       colors: colorSet,
       fontFamily: pickRandom(STYLE_FONTS[currentStyle]),
-      iconName: pickRandom(icons),
+      iconName: selectedIcon,
       layout,
       backgroundColor: bgColor,
       textColor: textClr,
@@ -281,6 +467,8 @@ export function generateLogoConcepts(request: GenerateLogoRequest, count: number
       fontWeight,
       divider,
       accentColor,
+      // Store gradient info in accentColor field as CSS
+      ...(gradient ? { accentColor: `linear-gradient(${gradient.angle}deg, ${gradient.colors[0]}, ${gradient.colors[1]})` } : {}),
     });
   }
 

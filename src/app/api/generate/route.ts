@@ -6,7 +6,19 @@ import { generateAILogos } from "@/lib/ai-logo-gen";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { businessName, industry, keywords, style } = body as GenerateLogoRequest;
+    const { 
+      businessName, 
+      industry, 
+      keywords, 
+      style,
+      tagline,
+      targetAudience,
+      personality,
+      colors,
+      iconPreference,
+      backgroundType,
+      additionalNotes
+    } = body as GenerateLogoRequest;
 
     if (!businessName) {
       return NextResponse.json(
@@ -17,6 +29,21 @@ export async function POST(request: NextRequest) {
 
     const resolvedIndustry = industry || "Technology";
 
+    // Prepare AI Input mapping
+    const aiInput = {
+      businessName,
+      industry: resolvedIndustry,
+      keywords,
+      style: style as string | undefined,
+      tagline,
+      targetAudience,
+      personality,
+      colors,
+      iconPreference,
+      backgroundType,
+      additionalNotes
+    };
+
     // Generate font-based + AI image logos in parallel, wait for BOTH
     const [fontLogos, aiLogos] = await Promise.all([
       Promise.resolve(
@@ -25,10 +52,7 @@ export async function POST(request: NextRequest) {
           12
         )
       ),
-      generateAILogos(
-        { businessName, industry: resolvedIndustry, keywords, style: style as string | undefined },
-        4
-      ).catch((err) => {
+      generateAILogos(aiInput, 6).catch((err) => {
         console.error("AI logo generation failed:", err);
         return [];
       }),
@@ -45,8 +69,8 @@ export async function POST(request: NextRequest) {
       fontFamily: "Inter",
       iconName: "sparkles",
       layout: "stacked" as const,
-      backgroundColor: "#ffffff",
-      textColor: "#111827",
+      backgroundColor: backgroundType === "transparent" ? "transparent" : (backgroundType === "dark" ? "#111827" : "#ffffff"),
+      textColor: backgroundType === "dark" ? "#ffffff" : "#111827",
       iconColor: "#6366f1",
       createdAt: new Date(),
       aiImageUrl: ai.imageUrl,
@@ -56,7 +80,7 @@ export async function POST(request: NextRequest) {
 
     // Interleave AI logos among font logos so they appear mixed
     const logos: LogoConcept[] = [];
-    const aiPositions = [0, 3, 7, 11]; // spread AI logos across the grid
+    const aiPositions = [0, 2, 5, 8, 11, 14]; // spread up to 6 AI logos across the grid
     let aiIdx = 0;
     let fontIdx = 0;
 

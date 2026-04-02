@@ -12,7 +12,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "LogoCraft AI - AI-Powered Logo & Branding Platform",
+  title: "PIXui - AI-Powered Logo & Branding Platform",
   description:
     "Create stunning professional logos in seconds with AI-powered design tools. Generate, customize, and download logos for your brand.",
   keywords: "logo maker, AI logo generator, brand design, logo creator, business logo",
@@ -25,7 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={inter.variable}>
-      <body className="antialiased bg-white text-gray-900 font-sans">
+      <body className="antialiased bg-white text-gray-900 font-sans" suppressHydrationWarning>
         <Navbar />
         <main className="min-h-screen">{children}</main>
         <Footer />

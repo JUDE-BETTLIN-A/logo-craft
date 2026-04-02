@@ -47,6 +47,9 @@ import {
   Tag,
   PenTool,
   Award,
+  Terminal,
+  Wifi,
+  Mountain,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -59,6 +62,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string; style?:
   Flower, Leaf, ShoppingCart, Heart: HeartIcon, Shield, Star,
   Target, MapPin, Key, Map, Compass, Film, Gamepad, Users,
   Wrench, Sparkles, Crown, Gem, Package, Tag, PenTool, Award,
+  Terminal, Wifi, Mountain,
 };
 
 /* ── Deterministic hash for consistent decoration per logo ── */
@@ -72,9 +76,50 @@ function idHash(str: string, max: number): number {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   INDUSTRY-THEMED DECORATION LAYER
+   Adds visual elements that relate to the industry
+   ══════════════════════════════════════════════════════════════ */
+function IndustryDecoration({ industry, c1, variant }: { industry: string; c1: string; variant: number }) {
+  const ind = industry.toLowerCase();
+  const isTech = ind.includes("tech") || ind === "technology";
+  const isFinance = ind.includes("finance");
+  const isHealth = ind.includes("health");
+
+  if (isTech) {
+    // Circuit board patterns for tech
+    return (
+      <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 300 300" preserveAspectRatio="xMidYMid slice">
+        {/* Circuit traces */}
+        <path d="M20,250 L20,200 L60,200 L60,180" stroke={c1} strokeWidth="0.8" opacity={0.08} fill="none" />
+        <path d="M280,50 L280,80 L250,80 L250,120" stroke={c1} strokeWidth="0.8" opacity={0.08} fill="none" />
+        <path d="M120,280 L120,260 L160,260 L160,240 L200,240" stroke={c1} strokeWidth="0.6" opacity={0.06} fill="none" />
+        <path d="M240,280 L240,250 L260,250" stroke={c1} strokeWidth="0.6" opacity={0.06} fill="none" />
+        {/* Circuit nodes */}
+        <circle cx="20" cy="250" r="2.5" fill={c1} opacity={0.12} />
+        <circle cx="60" cy="180" r="2" fill={c1} opacity={0.1} />
+        <circle cx="280" cy="50" r="2.5" fill={c1} opacity={0.12} />
+        <circle cx="250" cy="120" r="2" fill={c1} opacity={0.1} />
+        <circle cx="200" cy="240" r="2" fill={c1} opacity={0.08} />
+        <circle cx="120" cy="280" r="2" fill={c1} opacity={0.08} />
+        {/* Microchip squares */}
+        <rect x="270" y="260" width="10" height="10" rx="1" fill="none" stroke={c1} strokeWidth="0.5" opacity={0.07} />
+        <rect x="15" y="25" width="8" height="8" rx="1" fill="none" stroke={c1} strokeWidth="0.5" opacity={0.06} />
+        {/* Dot grid in corner */}
+        {variant % 2 === 0 && [0,1,2,3].map(r => [0,1,2,3].map(col => (
+          <circle key={`${r}-${col}`} cx={240 + col * 12} cy={15 + r * 12} r="1" fill={c1} opacity={0.05} />
+        )))}
+      </svg>
+    );
+  }
+
+  // Default decoration (non-industry-specific but still premium)
+  return null;
+}
+
+/* ══════════════════════════════════════════════════════════════
    SVG DECORATION LAYER — 8 unique background graphic patterns
    ══════════════════════════════════════════════════════════════ */
-function DecorationLayer({ variant, c1, c2 }: { variant: number; c1: string; c2: string }) {
+function DecorationLayer({ variant, c1, c2, industry }: { variant: number; c1: string; c2: string; industry?: string }) {
   const common = { className: "absolute inset-0 w-full h-full pointer-events-none" as string };
   switch (variant) {
     /* 0 — Offset circles + dashed ring */
@@ -251,6 +296,18 @@ export default function LogoCard({ logo, onFavorite, isFavorited = false }: Logo
   const av = idHash(logo.id + "a", 5); // accent divider variant
   const ff = `"${logo.fontFamily}", sans-serif`;
 
+  // Check if background is dark for glow effects
+  const isDarkBg = (() => {
+    const bg = logo.backgroundColor;
+    if (!bg || bg === "transparent") return false;
+    const hex = bg.replace("#", "");
+    if (hex.length < 6) return false;
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    return (r + g + b) / 3 < 100;
+  })();
+
   /* ── Shared text styles ── */
   const nameStyle: React.CSSProperties = {
     color: logo.textColor,
@@ -274,6 +331,15 @@ export default function LogoCard({ logo, onFavorite, isFavorited = false }: Logo
     textAlign: "center",
   };
 
+  /* ── Glow effect for dark backgrounds — makes icons pop ── */
+  const glowStyle = isDarkBg ? {
+    filter: `drop-shadow(0 0 8px ${logo.iconColor}40) drop-shadow(0 0 20px ${logo.iconColor}20)`,
+  } : {};
+
+  const iconGlowStyle = isDarkBg ? {
+    boxShadow: `0 0 15px ${logo.iconColor}30, 0 0 30px ${logo.iconColor}15`,
+  } : {};
+
   /* ── Build the content for each layout ── */
   const renderContent = () => {
     switch (logo.layout) {
@@ -283,9 +349,9 @@ export default function LogoCard({ logo, onFavorite, isFavorited = false }: Logo
         return (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
             {/* Letter hero with glow backdrop */}
-            <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <div style={{ position: "absolute", width: 115, height: 115, borderRadius: "50%", backgroundColor: logo.iconColor, opacity: 0.07 }} />
-              <div style={{ position: "absolute", width: 115, height: 115, borderRadius: "50%", border: `1px solid ${logo.iconColor}`, opacity: 0.08 }} />
+            <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", ...glowStyle }}>
+              <div style={{ position: "absolute", width: 115, height: 115, borderRadius: "50%", backgroundColor: logo.iconColor, opacity: isDarkBg ? 0.12 : 0.07, ...iconGlowStyle }} />
+              <div style={{ position: "absolute", width: 115, height: 115, borderRadius: "50%", border: `1px solid ${logo.iconColor}`, opacity: isDarkBg ? 0.15 : 0.08 }} />
               <span style={{ position: "relative", color: logo.iconColor, fontFamily: ff, fontWeight: fw, fontSize: 92, lineHeight: 0.85 }}>{initial}</span>
             </div>
             <AccentDivider color={logo.textColor} variant={av} />
@@ -298,7 +364,7 @@ export default function LogoCard({ logo, onFavorite, isFavorited = false }: Logo
       case "initial-top": {
         const shape = logo.iconShape || "circle";
         const sz = 76;
-        const shS: React.CSSProperties = { width: sz, height: sz, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: logo.iconColor };
+        const shS: React.CSSProperties = { width: sz, height: sz, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: logo.iconColor, ...iconGlowStyle };
         if (shape === "circle") shS.borderRadius = "50%";
         else if (shape === "rounded-square") shS.borderRadius = 18;
         else if (shape === "hexagon") shS.clipPath = "polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%)";
@@ -307,7 +373,7 @@ export default function LogoCard({ logo, onFavorite, isFavorited = false }: Logo
         else shS.borderRadius = "50%";
         return (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
-            <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", ...glowStyle }}>
               {/* Outer decorative ring */}
               {(shape === "circle" || shape === "rounded-square" || !shape || shape === "none") && (
                 <div style={{ position: "absolute", width: sz + 14, height: sz + 14, borderRadius: shape === "rounded-square" ? 22 : "50%", border: `1.5px dashed ${logo.iconColor}`, opacity: 0.18 }} />
@@ -327,7 +393,7 @@ export default function LogoCard({ logo, onFavorite, isFavorited = false }: Logo
       case "initial-left":
         return (
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ position: "relative" }}>
+            <div style={{ position: "relative", ...glowStyle }}>
               <span style={{ color: logo.iconColor, fontFamily: ff, fontWeight: fw, fontSize: 68, lineHeight: 0.85 }}>{initial}</span>
               {/* Accent underline under letter */}
               <div style={{ position: "absolute", bottom: -3, left: "10%", right: "10%", height: 3, backgroundColor: logo.iconColor, opacity: 0.3, borderRadius: 2 }} />
@@ -341,17 +407,26 @@ export default function LogoCard({ logo, onFavorite, isFavorited = false }: Logo
           </div>
         );
 
-      /* ─── ICON TOP ─────────────────────────────────── */
+      /* ─── ICON TOP (ENHANCED — larger icon, more prominent) ─── */
       case "icon-top":
         return (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-            {/* Icon in gradient circle container */}
-            <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <div style={{ width: 62, height: 62, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: logo.iconColor + "14", border: `1.5px solid ${logo.iconColor}22` }}>
-                <IconComponent style={{ color: logo.iconColor, width: 28, height: 28 }} />
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
+            {/* Icon in prominent container */}
+            <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", ...glowStyle }}>
+              {/* Outer glow ring for dark backgrounds */}
+              {isDarkBg && (
+                <div style={{ position: "absolute", width: 82, height: 82, borderRadius: "50%", backgroundColor: logo.iconColor, opacity: 0.06 }} />
+              )}
+              <div style={{ 
+                width: 70, height: 70, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", 
+                backgroundColor: logo.iconColor + (isDarkBg ? "22" : "14"), 
+                border: `2px solid ${logo.iconColor}${isDarkBg ? "44" : "22"}`,
+                ...iconGlowStyle,
+              }}>
+                <IconComponent style={{ color: logo.iconColor, width: 34, height: 34 }} />
               </div>
               {/* Outer ring */}
-              <div style={{ position: "absolute", width: 74, height: 74, borderRadius: "50%", border: `0.8px solid ${logo.iconColor}`, opacity: 0.1 }} />
+              <div style={{ position: "absolute", width: 84, height: 84, borderRadius: "50%", border: `0.8px solid ${logo.iconColor}`, opacity: isDarkBg ? 0.15 : 0.1 }} />
             </div>
             <AccentDivider color={logo.textColor} variant={av} />
             <div style={{ textAlign: "center" }}>
@@ -365,8 +440,14 @@ export default function LogoCard({ logo, onFavorite, isFavorited = false }: Logo
       case "icon-right":
         return (
           <div style={{ display: "flex", alignItems: "center", gap: 14, flexDirection: "row-reverse" }}>
-            <div style={{ width: 52, height: 52, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: logo.iconColor + "14", border: `1.5px solid ${logo.iconColor}20` }}>
-              <IconComponent style={{ color: logo.iconColor, width: 24, height: 24 }} />
+            <div style={{ 
+              width: 56, height: 56, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", 
+              backgroundColor: logo.iconColor + (isDarkBg ? "22" : "14"), 
+              border: `2px solid ${logo.iconColor}${isDarkBg ? "40" : "20"}`,
+              ...iconGlowStyle,
+              ...glowStyle,
+            }}>
+              <IconComponent style={{ color: logo.iconColor, width: 28, height: 28 }} />
             </div>
             <div style={{ width: 1.5, height: 38, backgroundColor: logo.iconColor, opacity: 0.12, borderRadius: 1 }} />
             <div style={{ textAlign: "right" }}>
@@ -376,12 +457,43 @@ export default function LogoCard({ logo, onFavorite, isFavorited = false }: Logo
           </div>
         );
 
-      /* ─── STACKED ───────────────────────────────────── */
-      case "stacked":
+      /* ─── STACKED (ENHANCED — shield/shape with icon) ── */
+      case "stacked": {
+        const shape = logo.iconShape || "rounded-square";
+        const sz = 66;
+        const containerStyle: React.CSSProperties = {
+          width: sz, height: sz,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          backgroundColor: logo.iconColor + (isDarkBg ? "20" : "16"),
+          border: `2px solid ${logo.iconColor}${isDarkBg ? "44" : "22"}`,
+          position: "relative",
+          ...iconGlowStyle,
+        };
+        
+        if (shape === "shield") {
+          containerStyle.clipPath = "polygon(50% 0%,100% 10%,100% 65%,50% 100%,0% 65%,0% 10%)";
+          containerStyle.width = sz + 4;
+          containerStyle.height = sz + 8;
+        } else if (shape === "hexagon") {
+          containerStyle.clipPath = "polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%)";
+        } else if (shape === "circle") {
+          containerStyle.borderRadius = "50%";
+        } else if (shape === "diamond") {
+          containerStyle.transform = "rotate(45deg)";
+          containerStyle.borderRadius = 12;
+        } else {
+          containerStyle.borderRadius = 16;
+        }
+
         return (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 58, height: 58, borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: logo.iconColor + "16", border: `1.5px solid ${logo.iconColor}22`, position: "relative" }}>
-              <IconComponent style={{ color: logo.iconColor, width: 26, height: 26 }} />
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+            <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", ...glowStyle }}>
+              <div style={containerStyle}>
+                <IconComponent style={{ 
+                  color: logo.iconColor, width: 30, height: 30,
+                  ...(shape === "diamond" ? { transform: "rotate(-45deg)" } : {}),
+                }} />
+              </div>
               {/* Small corner accent */}
               <div style={{ position: "absolute", top: -3, right: -3, width: 8, height: 8, borderRadius: "50%", backgroundColor: logo.iconColor, opacity: 0.25 }} />
             </div>
@@ -390,6 +502,7 @@ export default function LogoCard({ logo, onFavorite, isFavorited = false }: Logo
             {logo.tagline && <span style={sloganStyle}>{logo.tagline}</span>}
           </div>
         );
+      }
 
       /* ─── WORDMARK ──────────────────────────────────── */
       case "wordmark":
@@ -415,7 +528,7 @@ export default function LogoCard({ logo, onFavorite, isFavorited = false }: Logo
         const initials = logo.businessName.split(/\s+/).map(w => w[0]).join("").substring(0, 2).toUpperCase();
         const shape = logo.iconShape || "circle";
         const sz = 72;
-        const shS: React.CSSProperties = { width: sz, height: sz, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: logo.iconColor };
+        const shS: React.CSSProperties = { width: sz, height: sz, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: logo.iconColor, ...iconGlowStyle };
         if (shape === "circle") shS.borderRadius = "50%";
         else if (shape === "rounded-square") shS.borderRadius = 16;
         else if (shape === "hexagon") shS.clipPath = "polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%)";
@@ -424,7 +537,7 @@ export default function LogoCard({ logo, onFavorite, isFavorited = false }: Logo
         else shS.borderRadius = "50%";
         return (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-            <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", ...glowStyle }}>
               {(shape === "circle" || !shape || shape === "none") && (
                 <div style={{ position: "absolute", width: sz + 12, height: sz + 12, borderRadius: "50%", border: `1px solid ${logo.iconColor}`, opacity: 0.15 }} />
               )}
@@ -437,16 +550,20 @@ export default function LogoCard({ logo, onFavorite, isFavorited = false }: Logo
         );
       }
 
-      /* ─── EMBLEM ────────────────────────────────────── */
+      /* ─── EMBLEM (ENHANCED — icon inside emblem circle) ── */
       case "emblem":
         return (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-            <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", ...glowStyle }}>
               {/* Double ring */}
-              <div style={{ position: "absolute", width: 88, height: 88, borderRadius: "50%", border: `1.5px solid ${logo.iconColor}`, opacity: 0.12 }} />
-              <div style={{ width: 78, height: 78, borderRadius: "50%", border: `2px solid ${logo.iconColor}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2 }}>
-                <IconComponent style={{ color: logo.iconColor, width: 22, height: 22 }} />
-                <span style={{ color: logo.textColor, fontFamily: ff, fontSize: 8.5, fontWeight: fw, letterSpacing: "0.12em", textTransform: "uppercase" as const }}>
+              <div style={{ position: "absolute", width: 96, height: 96, borderRadius: "50%", border: `1.5px solid ${logo.iconColor}`, opacity: isDarkBg ? 0.18 : 0.12 }} />
+              <div style={{ 
+                width: 84, height: 84, borderRadius: "50%", border: `2.5px solid ${logo.iconColor}`, 
+                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3,
+                ...iconGlowStyle,
+              }}>
+                <IconComponent style={{ color: logo.iconColor, width: 26, height: 26 }} />
+                <span style={{ color: logo.textColor, fontFamily: ff, fontSize: 8, fontWeight: fw, letterSpacing: "0.12em", textTransform: "uppercase" as const }}>
                   {logo.businessName.length > 10 ? logo.businessName.substring(0, 10) : logo.businessName}
                 </span>
               </div>
@@ -455,15 +572,19 @@ export default function LogoCard({ logo, onFavorite, isFavorited = false }: Logo
           </div>
         );
 
-      /* ─── BADGE ─────────────────────────────────────── */
+      /* ─── BADGE (ENHANCED) ─────────────────────────── */
       case "badge":
         return (
-          <div style={{ border: `2px solid ${logo.iconColor}`, borderRadius: 10, padding: "14px 22px", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, position: "relative" }}>
+          <div style={{ 
+            border: `2px solid ${logo.iconColor}`, borderRadius: 10, padding: "14px 22px", 
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 8, position: "relative",
+            ...(isDarkBg ? { boxShadow: `0 0 20px ${logo.iconColor}15, inset 0 0 20px ${logo.iconColor}08` } : {}),
+          }}>
             {/* Corner dots */}
-            <div style={{ position: "absolute", top: -4, left: -4, width: 8, height: 8, borderRadius: "50%", backgroundColor: logo.iconColor, opacity: 0.2 }} />
-            <div style={{ position: "absolute", top: -4, right: -4, width: 8, height: 8, borderRadius: "50%", backgroundColor: logo.iconColor, opacity: 0.2 }} />
+            <div style={{ position: "absolute", top: -4, left: -4, width: 8, height: 8, borderRadius: "50%", backgroundColor: logo.iconColor, opacity: isDarkBg ? 0.35 : 0.2 }} />
+            <div style={{ position: "absolute", top: -4, right: -4, width: 8, height: 8, borderRadius: "50%", backgroundColor: logo.iconColor, opacity: isDarkBg ? 0.35 : 0.2 }} />
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <IconComponent style={{ color: logo.iconColor, width: 20, height: 20 }} />
+              <IconComponent style={{ color: logo.iconColor, width: 22, height: 22, ...glowStyle }} />
               <span style={{ ...nameStyle, fontSize: 16 }}>{logo.businessName}</span>
             </div>
             {logo.tagline && (
@@ -479,18 +600,29 @@ export default function LogoCard({ logo, onFavorite, isFavorited = false }: Logo
       case "minimal":
         return (
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <IconComponent style={{ color: logo.iconColor, width: 22, height: 22 }} />
-            <div style={{ width: 1, height: 20, backgroundColor: logo.iconColor, opacity: 0.15 }} />
-            <span style={{ ...nameStyle, fontWeight: 500, textAlign: "left" }}>{logo.businessName}</span>
+            <div style={glowStyle}>
+              <IconComponent style={{ color: logo.iconColor, width: 26, height: 26 }} />
+            </div>
+            <div style={{ width: 1, height: 22, backgroundColor: logo.iconColor, opacity: 0.15 }} />
+            <div>
+              <span style={{ ...nameStyle, fontWeight: 500, textAlign: "left" }}>{logo.businessName}</span>
+              {logo.tagline && <div style={{ ...sloganStyle, marginTop: 3, textAlign: "left" }}>{logo.tagline}</div>}
+            </div>
           </div>
         );
 
-      /* ─── SPLIT ─────────────────────────────────────── */
+      /* ─── SPLIT (ENHANCED) ────────────────────────── */
       case "split":
         return (
-          <div style={{ display: "flex", alignItems: "stretch", borderRadius: 12, overflow: "hidden", width: "88%", boxShadow: `0 2px 12px ${logo.iconColor}15` }}>
-            <div style={{ backgroundColor: logo.iconColor, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px 18px" }}>
-              <IconComponent style={{ color: "#fff", width: 24, height: 24 }} />
+          <div style={{ 
+            display: "flex", alignItems: "stretch", borderRadius: 12, overflow: "hidden", width: "88%", 
+            boxShadow: isDarkBg ? `0 4px 20px ${logo.iconColor}20` : `0 2px 12px ${logo.iconColor}15`,
+          }}>
+            <div style={{ 
+              backgroundColor: logo.iconColor, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px 20px",
+              ...glowStyle,
+            }}>
+              <IconComponent style={{ color: "#fff", width: 28, height: 28 }} />
             </div>
             <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", justifyContent: "center", backgroundColor: logo.textColor + "06" }}>
               <span style={{ ...nameStyle, fontSize: 14, textAlign: "left" }}>{logo.businessName}</span>
@@ -503,8 +635,14 @@ export default function LogoCard({ logo, onFavorite, isFavorited = false }: Logo
       default:
         return (
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 50, height: 50, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: logo.iconColor + "14", border: `1.5px solid ${logo.iconColor}20` }}>
-              <IconComponent style={{ color: logo.iconColor, width: 24, height: 24 }} />
+            <div style={{ 
+              width: 54, height: 54, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", 
+              backgroundColor: logo.iconColor + (isDarkBg ? "22" : "14"), 
+              border: `2px solid ${logo.iconColor}${isDarkBg ? "40" : "20"}`,
+              ...iconGlowStyle,
+              ...glowStyle,
+            }}>
+              <IconComponent style={{ color: logo.iconColor, width: 26, height: 26 }} />
             </div>
             <div>
               <span style={{ ...nameStyle, textAlign: "left" }}>{logo.businessName}</span>
@@ -564,7 +702,10 @@ export default function LogoCard({ logo, onFavorite, isFavorited = false }: Logo
         style={{ backgroundColor: logo.backgroundColor }}
       >
         {/* SVG decoration layer */}
-        <DecorationLayer variant={dv} c1={logo.iconColor} c2={logo.textColor} />
+        <DecorationLayer variant={dv} c1={logo.iconColor} c2={logo.textColor} industry={logo.industry} />
+        
+        {/* Industry-themed decoration (circuit patterns for tech, etc.) */}
+        <IndustryDecoration industry={logo.industry} c1={logo.iconColor} variant={dv} />
 
         {/* Content layer */}
         <div className="relative z-10">{renderContent()}</div>

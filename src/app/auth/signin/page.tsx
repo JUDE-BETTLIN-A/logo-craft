@@ -58,7 +58,7 @@ export default function SignInPage() {
               <Sparkles className="w-4 h-4 text-white" />
             </div>
             <span className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              LogoCraft AI
+              PIXui
             </span>
           </Link>
           <h1 className="text-xl font-bold text-gray-900 mb-1">Welcome back</h1>

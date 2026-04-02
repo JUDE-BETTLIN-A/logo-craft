@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, Suspense, useRef } from "react";
+import { generateId } from "@/lib/utils";
 import { useSearchParams, useParams } from "next/navigation";
 import { LogoConcept, FONT_OPTIONS, COLOR_PALETTES } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -67,6 +68,7 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCcw,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -115,6 +117,9 @@ function EditorContent() {
   const [aiImage, setAiImage] = useState<string | null>(null);
   const [generatingImage, setGeneratingImage] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [showOverlayText, setShowOverlayText] = useState(false);
+  const [overlayOpacity, setOverlayOpacity] = useState(0.7);
+  const importFileRef = useRef<HTMLInputElement>(null);
 
   const [aiPalettes, setAiPalettes] = useState<ColorPalette[]>([]);
   const [loadingPalettes, setLoadingPalettes] = useState(false);
@@ -134,20 +139,49 @@ function EditorContent() {
   useEffect(() => { if (logo?.fontFamily) loadGoogleFont(logo.fontFamily); }, [logo?.fontFamily]);
 
   useEffect(() => {
-    const data = searchParams.get("data");
-    if (data) {
+    const id = params.id as string;
+    let parsed: LogoConcept | null = null;
+
+    // Try localStorage first (used by dashboard to avoid huge URL params)
+    const storedData = localStorage.getItem(`logo_edit_${id}`);
+    if (storedData) {
       try {
-        const parsed = JSON.parse(decodeURIComponent(data));
-        setLogo(parsed);
-        setTagline(parsed.tagline || "");
-      } catch {
-        setLogo({
-          id: params.id as string, name: "My Logo", businessName: "My Business",
-          industry: "Technology", style: "modern", colors: ["#4F46E5", "#7C3AED", "#E0E7FF"],
-          fontFamily: "Inter", iconName: "Star", layout: "icon-left",
-          backgroundColor: "#FFFFFF", textColor: "#1F2937", iconColor: "#4F46E5", createdAt: new Date(),
-        });
+        parsed = JSON.parse(storedData);
+        // Clean up after reading
+        localStorage.removeItem(`logo_edit_${id}`);
+      } catch { /* ignore */ }
+    }
+
+    // Fall back to URL params
+    if (!parsed) {
+      const data = searchParams.get("data");
+      if (data) {
+        try {
+          parsed = JSON.parse(decodeURIComponent(data));
+        } catch { /* ignore */ }
       }
+    }
+
+    if (parsed) {
+      setLogo(parsed);
+      setTagline(parsed.tagline || "");
+      // If the logo has an imported/AI image, auto-load it
+      if (parsed.aiImageUrl) {
+        setAiImage(parsed.aiImageUrl);
+        // For imported logos, set white text for readability on image backgrounds
+        if (parsed.aiStyleName === "Imported") {
+          parsed.textColor = "#FFFFFF";
+          parsed.iconColor = "#FFFFFF";
+          setLogo({ ...parsed, textColor: "#FFFFFF", iconColor: "#FFFFFF" });
+        }
+      }
+    } else {
+      setLogo({
+        id, name: "My Logo", businessName: "My Business",
+        industry: "Technology", style: "modern", colors: ["#4F46E5", "#7C3AED", "#E0E7FF"],
+        fontFamily: "Inter", iconName: "Star", layout: "icon-left",
+        backgroundColor: "#FFFFFF", textColor: "#1F2937", iconColor: "#4F46E5", createdAt: new Date(),
+      });
     }
   }, [searchParams, params.id]);
 
@@ -275,12 +309,57 @@ function EditorContent() {
     }, 400);
   }, []);
 
-  const downloadLogo = (format: "png" | "svg") => {
-    if (aiImage && format === "png") {
-      const a = document.createElement("a");
-      a.href = aiImage;
-      a.download = `${logo?.businessName || "logo"}-ai.png`;
-      a.click();
+  const downloadLogo = (format: "png" | "svg" | "jpeg") => {
+    if (aiImage && (format === "png" || format === "jpeg") && logo) {
+      // Composite the text onto the imported/AI image
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement("canvas");
+        c.width = img.naturalWidth || 800;
+        c.height = img.naturalHeight || 600;
+        const ctx = c.getContext("2d");
+        if (ctx) {
+          // Draw the base image
+          ctx.drawImage(img, 0, 0, c.width, c.height);
+          
+          // Draw gradient overlay at the bottom
+          const grad = ctx.createLinearGradient(0, c.height * 0.3, 0, c.height);
+          grad.addColorStop(0, "transparent");
+          grad.addColorStop(1, `rgba(0,0,0,${overlayOpacity * 0.6})`);
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, 0, c.width, c.height);
+          
+          // Draw business name
+          const txtColor = logo.textColor || "#FFFFFF";
+          const scale = c.width / 600;
+          const nameFontSize = Math.round(fontSize * scale);
+          ctx.font = `${fw} ${nameFontSize}px "${logo.fontFamily}", sans-serif`;
+          ctx.fillStyle = txtColor;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "bottom";
+          ctx.shadowColor = "rgba(0,0,0,0.5)";
+          ctx.shadowBlur = 8 * scale;
+          ctx.fillText(logo.businessName, c.width / 2, c.height - (tagline ? 36 * scale : 20 * scale));
+          
+          // Draw tagline if exists
+          if (tagline) {
+            const tagFontSize = Math.round(taglineFontSize * scale);
+            ctx.font = `400 ${tagFontSize}px "${logo.fontFamily}", sans-serif`;
+            ctx.globalAlpha = 0.8;
+            ctx.shadowBlur = 4 * scale;
+            ctx.fillText(tagline, c.width / 2, c.height - 16 * scale);
+            ctx.globalAlpha = 1;
+          }
+          
+          const mimeType = format === "jpeg" ? "image/jpeg" : "image/png";
+          const dataUrl = c.toDataURL(mimeType, format === "jpeg" ? 0.95 : undefined);
+          const a = document.createElement("a");
+          a.href = dataUrl;
+          a.download = `${logo.businessName || "logo"}.${format === "jpeg" ? "jpg" : "png"}`;
+          a.click();
+        }
+      };
+      img.src = aiImage;
       return;
     }
     const svgContent = generateSVG();
@@ -301,17 +380,41 @@ function EditorContent() {
         c.width = 800; c.height = 600;
         const ctx = c.getContext("2d");
         if (ctx) {
+          if (format === "jpeg") {
+            ctx.fillStyle = logo?.backgroundColor || "#ffffff";
+            ctx.fillRect(0, 0, 800, 600);
+          }
           ctx.drawImage(img, 0, 0, 800, 600);
-          const pngUrl = c.toDataURL("image/png");
+          const mimeType = format === "jpeg" ? "image/jpeg" : "image/png";
+          const dataUrl = c.toDataURL(mimeType, format === "jpeg" ? 0.95 : undefined);
           const a = document.createElement("a");
-          a.href = pngUrl;
-          a.download = `${logo?.businessName || "logo"}.png`;
+          a.href = dataUrl;
+          a.download = `${logo?.businessName || "logo"}.${format === "jpeg" ? "jpg" : "png"}`;
           a.click();
         }
         URL.revokeObjectURL(url);
       };
       img.src = url;
     }
+  };
+
+  const saveToMyLogos = () => {
+    if (!logo) return;
+    const saved = JSON.parse(localStorage.getItem("savedLogos") || "[]");
+    const exists = saved.some((s: { id: string }) => s.id === logo.id);
+    if (!exists) {
+      saved.unshift({
+        id: logo.id,
+        name: logo.name || logo.businessName,
+        businessName: logo.businessName,
+        style: logo.style,
+        createdAt: new Date().toISOString(),
+        colors: logo.colors || [logo.iconColor, logo.textColor],
+        logoData: logo,
+      });
+      localStorage.setItem("savedLogos", JSON.stringify(saved.slice(0, 50)));
+    }
+    alert("Logo saved to My Logos!");
   };
 
   const generateSVG = (): string => {
@@ -523,6 +626,21 @@ function EditorContent() {
     );
   };
 
+  // Import a new image into the editor
+  const handleEditorImport = (file: File) => {
+    if (!file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      setAiImage(dataUrl);
+      if (logo) {
+        updateLogo({ aiImageUrl: dataUrl, aiStyleName: "Imported" });
+      }
+      setShowOverlayText(true);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const panelTabs: { id: PanelTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: "text", label: "Text", icon: Type },
     { id: "colors", label: "Colors", icon: Palette },
@@ -535,7 +653,7 @@ function EditorContent() {
       {/* Top toolbar */}
       <div className="h-14 bg-[#2a2a3d] border-b border-[#3a3a4d] flex items-center justify-between px-4 shrink-0 z-50">
         <div className="flex items-center gap-3">
-          <Link href="/generate" className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+          <Link href="/" className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
             <ChevronLeft className="w-4 h-4" />
           </Link>
           <div className="h-5 w-px bg-gray-600" />
@@ -547,8 +665,15 @@ function EditorContent() {
             <Undo2 className="w-3.5 h-3.5" />Undo
           </Button>
           <div className="h-5 w-px bg-gray-600" />
+          <Button variant="ghost" size="sm" onClick={saveToMyLogos} className="text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10">
+            <Star className="w-3.5 h-3.5" />Save
+          </Button>
+          <div className="h-5 w-px bg-gray-600" />
           <Button variant="ghost" size="sm" onClick={() => downloadLogo("svg")} className="text-xs text-gray-300 hover:text-white hover:bg-white/10">
             <Download className="w-3.5 h-3.5" />SVG
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => downloadLogo("jpeg")} className="text-xs text-gray-300 hover:text-white hover:bg-white/10">
+            <Download className="w-3.5 h-3.5" />JPEG
           </Button>
           <Button variant="ghost" size="sm" onClick={() => downloadLogo("png")} className="text-xs bg-indigo-500 text-white hover:bg-indigo-600">
             <Download className="w-3.5 h-3.5" />PNG
@@ -767,6 +892,21 @@ function EditorContent() {
                     <div className="w-5 h-5 bg-white rounded-full shadow-sm absolute top-0.5 transition-transform duration-200" style={{ transform: shadow ? "translateX(22px)" : "translateX(2px)" }} />
                   </button>
                 </div>
+                {/* Overlay controls for imported images */}
+                {aiImage && showOverlayText && (
+                  <div className="mt-4 pt-4 border-t border-[#3a3a4d]">
+                    <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">Overlay Blend: {Math.round(overlayOpacity * 100)}%</label>
+                    <input type="range" min="0" max="1" step="0.05" value={overlayOpacity} onChange={(e) => setOverlayOpacity(+e.target.value)} className="w-full accent-indigo-500" />
+                  </div>
+                )}
+                {/* Replace image */}
+                {aiImage && (
+                  <div className="mt-4 pt-4 border-t border-[#3a3a4d]">
+                    <Button variant="ghost" size="sm" onClick={() => importFileRef.current?.click()} className="w-full text-xs text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 justify-center">
+                      <Download className="w-3.5 h-3.5 rotate-180" /> Replace Image
+                    </Button>
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -780,8 +920,15 @@ function EditorContent() {
                 {generatingImage ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
                 {generatingImage ? "Generating..." : "AI Generate"}
               </Button>
+              {/* Import image button */}
+              <input ref={importFileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleEditorImport(f); }} />
+              <Button variant="ghost" size="sm" onClick={() => importFileRef.current?.click()} className="text-[11px] text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 h-7">
+                <Download className="w-3 h-3 rotate-180" />Import
+              </Button>
               {aiImage && (
-                <Button variant="ghost" size="sm" onClick={() => setAiImage(null)} className="text-[11px] text-gray-500 hover:text-white hover:bg-white/10 h-7">Show Icon Logo</Button>
+                <Button variant="ghost" size="sm" onClick={() => { setAiImage(null); setShowOverlayText(false); }} className="text-[11px] text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 h-7">
+                  <X className="w-3 h-3" />Remove Image
+                </Button>
               )}
               {imageError && <span className="text-[10px] text-amber-400 ml-2">{imageError}</span>}
             </div>
@@ -801,26 +948,58 @@ function EditorContent() {
           </div>
 
           <div className="flex-1 flex items-center justify-center p-8 overflow-auto" onClick={() => setSelectedElement(null)}>
-            {aiImage ? (
-              <div className="rounded-xl overflow-hidden shadow-2xl" style={{ transform: `scale(${zoom / 100})`, transformOrigin: "center center" }}>
-                <img src={aiImage} alt={`AI generated logo for ${logo.businessName}`} className="max-w-[600px] max-h-[450px] object-contain" />
+            <div ref={canvasRef} id="logo-canvas"
+              className="relative flex items-center justify-center transition-shadow duration-300 overflow-hidden"
+              style={{
+                width: 600,
+                height: 450,
+                backgroundColor: logo.backgroundColor,
+                borderRadius,
+                padding: aiImage ? 0 : bgPadding,
+                boxShadow: shadow ? "0 25px 50px -12px rgba(0,0,0,0.5)" : "0 4px 20px rgba(0,0,0,0.15)",
+                transform: `scale(${zoom / 100})`,
+                transformOrigin: "center center",
+                cursor: isDragging ? "grabbing" : "default",
+              }}
+              onClick={(e) => e.stopPropagation()}>
+
+              {/* If we have an imported/AI image, show it as the canvas background */}
+              {aiImage && (
+                <img
+                  src={aiImage}
+                  alt={`Background for ${logo.businessName}`}
+                  className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                  style={{ borderRadius }}
+                />
+              )}
+
+              {/* Overlay gradient for readability when image is present */}
+              {aiImage && (
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    background: `linear-gradient(transparent 30%, rgba(0,0,0,${overlayOpacity * 0.6}))`,
+                    borderRadius,
+                  }}
+                />
+              )}
+
+              {/* Transparency grid for white backgrounds (when no image) */}
+              {!aiImage && logo.backgroundColor.toLowerCase() === "#ffffff" && (
+                <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: "repeating-conic-gradient(#999 0% 25%, transparent 0% 50%)", backgroundSize: "16px 16px" }} />
+              )}
+
+              {/* Editable content — always rendered, fully interactive */}
+              <div className="relative z-10" style={aiImage ? { marginTop: "auto", paddingBottom: 32 } : undefined}>
+                {renderCanvasContent()}
               </div>
-            ) : (
-              <div ref={canvasRef} id="logo-canvas"
-                className="relative flex items-center justify-center transition-shadow duration-300"
-                style={{ width: 600, height: 450, backgroundColor: logo.backgroundColor, borderRadius, padding: bgPadding, boxShadow: shadow ? "0 25px 50px -12px rgba(0,0,0,0.5)" : "0 4px 20px rgba(0,0,0,0.15)", transform: `scale(${zoom / 100})`, transformOrigin: "center center", cursor: isDragging ? "grabbing" : "default" }}
-                onClick={(e) => e.stopPropagation()}>
-                {logo.backgroundColor.toLowerCase() === "#ffffff" && (
-                  <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: "repeating-conic-gradient(#999 0% 25%, transparent 0% 50%)", backgroundSize: "16px 16px" }} />
-                )}
-                <div className="relative z-10">{renderCanvasContent()}</div>
-                {selectedElement && (
-                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-indigo-500/90 text-white text-[10px] font-medium px-3 py-1 rounded-full backdrop-blur-sm flex items-center gap-1.5 z-20 pointer-events-none">
-                    <Move className="w-3 h-3" />Drag to reposition &middot; {selectedElement}
-                  </div>
-                )}
-              </div>
-            )}
+
+              {selectedElement && (
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-indigo-500/90 text-white text-[10px] font-medium px-3 py-1 rounded-full backdrop-blur-sm flex items-center gap-1.5 z-20 pointer-events-none">
+                  <Move className="w-3 h-3" />Drag to reposition &middot; {selectedElement}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="h-8 bg-[#252535] border-t border-[#3a3a4d] flex items-center justify-center px-4 shrink-0">

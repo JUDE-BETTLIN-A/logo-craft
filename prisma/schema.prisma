@@ -7,6 +7,32 @@ datasource db {
   url      = "file:./dev.db"
 }
 
+enum TelegramConnectionState {
+  disconnected
+  code_sent
+  password_required
+  connected
+}
+
+enum NegotiationStatus {
+  live
+  paused
+  agreed
+  closed
+}
+
+enum NegotiationMessageSender {
+  customer
+  ai
+  owner
+  system
+}
+
+enum NegotiationMessageDirection {
+  incoming
+  outgoing
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -71,4 +97,64 @@ model Download {
   logo      Logo     @relation(fields: [logoId], references: [id])
 
   @@index([userId])
+}
+
+model TelegramConnection {
+  id                 String                  @id @default("default")
+  phoneNumber        String?
+  sessionString      String?
+  selfUserId         String?
+  selfUsername       String?
+  selfDisplayName    String?
+  state              TelegramConnectionState @default(disconnected)
+  pendingPhoneNumber String?
+  pendingCodeHash    String?
+  passwordHint       String?
+  codeViaApp         Boolean                 @default(false)
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+}
+
+model NegotiationSession {
+  id                        String               @id @default(cuid())
+  customerPhone             String
+  customerDisplayName       String?
+  customerUsername          String?
+  customerPeerId            String
+  logoLabel                 String
+  logoPreviewUrl            String?
+  minPrice                  Int
+  maxPrice                  Int
+  currentOffer              Int
+  agreedPrice               Int?
+  aiProvider                String               @default("gemini")
+  aiModel                   String
+  status                    NegotiationStatus    @default(live)
+  manualMode                Boolean              @default(false)
+  lastHandledCustomerMessageId Int?
+  lastSyncedMessageId       Int?
+  lastAiMessageId           Int?
+  lastSyncedAt              DateTime?
+  createdAt                 DateTime             @default(now())
+  updatedAt                 DateTime             @updatedAt
+  messages                  NegotiationMessage[]
+
+  @@index([status, updatedAt])
+  @@index([customerPhone])
+}
+
+model NegotiationMessage {
+  id                String                      @id @default(cuid())
+  sessionId         String
+  session           NegotiationSession          @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  telegramMessageId Int
+  sender            NegotiationMessageSender
+  direction         NegotiationMessageDirection
+  text              String
+  priceOffered      Int?
+  source            String
+  createdAt         DateTime
+
+  @@unique([sessionId, telegramMessageId])
+  @@index([sessionId, createdAt])
 }

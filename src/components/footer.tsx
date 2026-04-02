@@ -9,10 +9,10 @@ export default function Footer() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center">
                 <Sparkles className="w-4 h-4 text-white" />
               </div>
-              <span className="text-lg font-bold text-white">LogoCraft AI</span>
+              <span className="text-lg font-bold text-white">PIXui</span>
             </Link>
             <p className="text-sm text-gray-500 leading-relaxed max-w-xs">
               Create stunning professional logos in seconds with AI-powered design tools.
@@ -61,8 +61,8 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-gray-800 mt-12 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-xs text-gray-600">
-            &copy; {new Date().getFullYear()} LogoCraft AI. All rights reserved.
+          <p className="text-sm">
+            &copy; {new Date().getFullYear()} PIXui. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
             {[Github, Twitter, Mail].map((Icon, i) => (

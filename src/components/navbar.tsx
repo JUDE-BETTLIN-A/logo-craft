@@ -52,22 +52,21 @@ export default function Navbar() {
               <Sparkles className="w-4 h-4 text-white" />
             </div>
             <span className="text-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              LogoCraft AI
+              PIXui
             </span>
           </Link>
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-1">
             {[
-              { href: "/generate", label: "Logo Maker" },
-              { href: "/sell", label: "Sell Logos" },
-              { href: "/pricing", label: "Pricing" },
+              { href: "/#generator", label: "Logo Maker" },
+              { href: "/negotiator", label: "Negotiator" },
               { href: "/dashboard", label: "My Logos" },
             ].map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-50 transition-colors"
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors text-gray-500 hover:text-gray-900 hover:bg-gray-50`}
               >
                 {link.label}
               </Link>
@@ -134,9 +133,8 @@ export default function Navbar() {
       >
         <div className="border-t border-gray-100 bg-white px-6 py-4 space-y-1">
           {[
-            { href: "/generate", label: "Logo Maker" },
-            { href: "/sell", label: "Sell Logos" },
-            { href: "/pricing", label: "Pricing" },
+            { href: "/#generator", label: "Logo Maker" },
+            { href: "/negotiator", label: "Negotiator" },
             { href: "/dashboard", label: "My Logos" },
           ].map((link) => (
             <Link

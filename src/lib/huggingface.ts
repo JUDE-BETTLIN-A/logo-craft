@@ -18,16 +18,24 @@ export function buildLogoPrompt(options: {
   keywords?: string;
 }): string {
   const { businessName, industry, style, colorHint, keywords } = options;
+  const initial = businessName.charAt(0).toUpperCase();
+  const ind = (industry || "technology").toLowerCase();
+
+  // Industry-specific visual direction
+  let industryVisual = `for a ${industry || "technology"} company called "${businessName}"`;
+  if (ind.includes("tech") || ind === "technology") {
+    industryVisual = `for a technology company called "${businessName}". Feature the letter "${initial}" with a futuristic shield or hexagonal frame, circuit board trace elements, and a blue-to-purple gradient. Digital, innovative, and modern`;
+  }
 
   const parts = [
     "A professional, high-quality logo design",
-    `for a ${industry || "technology"} company called "${businessName}"`,
+    industryVisual,
     style ? `in a ${style} style` : "",
     colorHint ? `using ${colorHint} color scheme` : "",
     keywords ? `incorporating themes of ${keywords}` : "",
-    "minimalist, vector art style, clean lines, centered composition",
-    "white background, suitable for business use",
-    "no text, no watermark, sharp edges, modern branding",
+    "vector art style, clean lines, centered composition",
+    "dark background, suitable for business use",
+    "no watermark, sharp edges, modern branding",
   ];
 
   return parts.filter(Boolean).join(", ");

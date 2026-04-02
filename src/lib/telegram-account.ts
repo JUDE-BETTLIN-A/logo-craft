@@ -102,6 +102,7 @@ async function createClient(sessionString: string) {
       deviceModel: "PIXui Negotiator",
       systemVersion: `Node ${process.version}`,
       appVersion: "1.0.0",
+      useWSS: true,
     },
   );
 
